@@ -1,0 +1,57 @@
+#!/bin/env python
+
+import os
+import argparse
+import tempfile
+import pypandoc
+
+import ipdb as pdb
+
+
+def language(file_name):
+    _, ext = os.path.splitext(file_name)
+    ext_map = {
+        '.m': "matlab",
+        '.json': "json",
+    }
+    return ext_map[ext]
+
+
+def copy_file(file_name, file_pointer):
+    file_pointer.write("# `{}`\n".format(file_name))
+    file_pointer.write("``` {{.{}}}\n".format(language(file_name)))
+    with open(file_name, 'r') as f:
+        file_pointer.write(f.read())
+    file_pointer.write("```\n\n")
+    file_pointer.write("-----------------------\n\n".format(file_name))
+    file_pointer.flush()
+
+
+def main(src, pdf):
+    with tempfile.NamedTemporaryFile(mode='w') as tmp_file:
+        for file_name in src:
+            copy_file(file_name, tmp_file.file)
+        tmp_file.file.close()
+        output = pypandoc.convert(
+            source=tmp_file.name,
+            to='pdf',
+            format='md',
+            outputfile=pdf)
+        assert output == ""
+
+
+def parse_args():
+    description = ("A simple tool to produce a PDF document " +
+        "from one or more source code files")
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('src', nargs='+', help='input file help')
+    parser.add_argument('pdf', help='input file help')
+    return parser.parse_args()
+
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args.src, args.pdf)
+
+
